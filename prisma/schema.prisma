@@ -12,6 +12,7 @@ model User {
   id              String         @id @default(cuid())
   email           String         @unique
   passwordHash    String
+  displayName     String?
   displayCurrency    String         @default("USD")
   householdId        String?
   gmailAccessToken      String?
