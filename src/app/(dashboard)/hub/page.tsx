@@ -1,7 +1,17 @@
 import { redirect } from "next/navigation";
-import { CreditCard, CalendarDays, Images, ArrowRight } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import {
+  CreditCard,
+  CalendarDays,
+  Images,
+  ArrowRight,
+  CalendarPlus,
+  ImagePlus,
+  Activity,
+} from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getActivity } from "@/lib/activity";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +23,7 @@ export default async function HubPage() {
 
   // Subscription lives in hifamily's own schema; Event/Album belong to the
   // other platforms' schemas, so read their counts from the shared DB directly.
-  const [user, subscriptions, eventRows, albumRows] = await Promise.all([
+  const [user, subscriptions, eventRows, albumRows, activity] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { displayName: true, email: true },
@@ -21,7 +31,14 @@ export default async function HubPage() {
     prisma.subscription.count({ where: { userId } }),
     prisma.$queryRaw<{ count: number }[]>`SELECT count(*)::int AS count FROM "Event" WHERE "hostId" = ${userId}`,
     prisma.$queryRaw<{ count: number }[]>`SELECT count(*)::int AS count FROM "Album" WHERE "ownerId" = ${userId}`,
+    getActivity(userId),
   ]);
+
+  const activityIcon = {
+    event: CalendarPlus,
+    album: ImagePlus,
+    photos: Images,
+  } as const;
 
   const events = eventRows[0]?.count ?? 0;
   const albums = albumRows[0]?.count ?? 0;
@@ -88,6 +105,49 @@ export default async function HubPage() {
           );
         })}
       </div>
+
+      {activity.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Recent activity
+          </h2>
+          <Card>
+            <CardContent className="py-1 divide-y">
+              {activity.map((item, i) => {
+                const Icon = activityIcon[item.type];
+                return (
+                  <a
+                    key={i}
+                    href={item.href}
+                    className="flex items-center gap-3 py-3 -mx-2 px-2 rounded-md hover:bg-muted/50 transition-colors"
+                  >
+                    <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1 text-sm min-w-0">
+                      {item.type === "photos" ? (
+                        <>
+                          <strong>{item.count}</strong>{" "}
+                          {item.count === 1 ? "new photo" : "new photos"} in{" "}
+                          <strong>{item.title}</strong>
+                        </>
+                      ) : (
+                        <>
+                          <strong>{item.actor}</strong>{" "}
+                          {item.type === "event" ? "created event" : "started album"}{" "}
+                          <strong>{item.title}</strong>
+                        </>
+                      )}
+                    </span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {formatDistanceToNow(item.time, { addSuffix: true })}
+                    </span>
+                  </a>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
