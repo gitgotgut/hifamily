@@ -31,6 +31,7 @@ model User {
   ssoCodes        SsoCode[]
   ownedCircles      Circle[]       @relation("CircleOwner")
   circleMemberships CircleMember[]
+  invitesSent       CircleInvite[] @relation("InvitesSent")
   subscriptions   Subscription[]
   history         SubscriptionHistory[]
   household       Household?     @relation("HouseholdOwner")
@@ -221,6 +222,7 @@ model Circle {
   owner     User           @relation("CircleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   createdAt DateTime       @default(now())
   members   CircleMember[]
+  invites   CircleInvite[]
 
   @@index([ownerId])
 }
@@ -236,4 +238,20 @@ model CircleMember {
 
   @@unique([circleId, userId])
   @@index([userId])
+}
+
+// Pending invitation to join a circle. Email may not be a registered user yet;
+// the invite is claimed when that email signs in and accepts.
+model CircleInvite {
+  id          String   @id @default(cuid())
+  circleId    String
+  circle      Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  email       String
+  invitedById String
+  invitedBy   User     @relation("InvitesSent", fields: [invitedById], references: [id], onDelete: Cascade)
+  status      String   @default("pending") // pending | accepted | declined
+  createdAt   DateTime @default(now())
+
+  @@unique([circleId, email])
+  @@index([email])
 }

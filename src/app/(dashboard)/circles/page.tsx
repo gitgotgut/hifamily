@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreateCircleForm } from "./create-circle-form";
+import { PendingInvites } from "./pending-invites";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,24 @@ export default async function CirclesPage() {
     include: { _count: { select: { members: true } } },
   });
 
+  const me = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+  const inviteRows = await prisma.circleInvite.findMany({
+    where: { email: me?.email.toLowerCase() ?? "__none__", status: "pending" },
+    orderBy: { createdAt: "desc" },
+    include: {
+      circle: { select: { name: true } },
+      invitedBy: { select: { displayName: true, email: true } },
+    },
+  });
+  const invites = inviteRows.map((i) => ({
+    id: i.id,
+    circleName: i.circle.name,
+    invitedBy: i.invitedBy.displayName ?? i.invitedBy.email,
+  }));
+
   return (
     <div className="max-w-2xl">
       <h1 className="text-2xl font-bold mb-1">Circles</h1>
@@ -27,6 +46,12 @@ export default async function CirclesPage() {
         Family and friend groups. Anything you share with a circle is visible to
         everyone in it.
       </p>
+
+      {invites.length > 0 && (
+        <div className="mb-8">
+          <PendingInvites invites={invites} />
+        </div>
+      )}
 
       <div className="mb-8">
         <CreateCircleForm />

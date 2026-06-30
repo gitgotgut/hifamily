@@ -24,6 +24,11 @@ export default async function CircleDetailPage({
         include: { user: { select: { id: true, displayName: true, email: true } } },
         orderBy: { createdAt: "asc" },
       },
+      invites: {
+        where: { status: "pending" },
+        select: { id: true, email: true },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 
@@ -58,6 +63,9 @@ export default async function CircleDetailPage({
           email: m.user.email,
           role: m.role,
         }))}
+        pendingInvites={
+          isOwner ? circle.invites.map((i) => ({ id: i.id, email: i.email })) : []
+        }
       />
     </div>
   );
