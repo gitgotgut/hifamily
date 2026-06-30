@@ -1,12 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { LayoutDashboard, Settings } from "lucide-react";
+import { LayoutDashboard, Users, Settings } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { SidebarNav, type SidebarNavItem } from "@/components/sidebar-nav";
 
 const NAV_ITEMS: SidebarNavItem[] = [
   { href: "/hub", label: "Home", icon: LayoutDashboard },
+  { href: "/circles", label: "Circles", icon: Users },
   { href: "/account", label: "Account", icon: Settings },
 ];
 

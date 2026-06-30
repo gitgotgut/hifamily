@@ -29,6 +29,8 @@ model User {
   emailVerifyExpiry     DateTime?
   createdAt             DateTime       @default(now())
   ssoCodes        SsoCode[]
+  ownedCircles      Circle[]       @relation("CircleOwner")
+  circleMemberships CircleMember[]
   subscriptions   Subscription[]
   history         SubscriptionHistory[]
   household       Household?     @relation("HouseholdOwner")
@@ -209,4 +211,29 @@ model RateLimit {
   key       String   @unique
   count     Int      @default(0)
   expiresAt DateTime
+}
+
+// A family/friends group. Content marked OPEN is visible to a circle's members.
+model Circle {
+  id        String         @id @default(cuid())
+  name      String
+  ownerId   String
+  owner     User           @relation("CircleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  members   CircleMember[]
+
+  @@index([ownerId])
+}
+
+model CircleMember {
+  id        String   @id @default(cuid())
+  circleId  String
+  circle    Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("member")
+  createdAt DateTime @default(now())
+
+  @@unique([circleId, userId])
+  @@index([userId])
 }
