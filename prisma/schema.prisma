@@ -24,7 +24,11 @@ model User {
   emailReminders        Boolean        @default(true)
   passwordResetToken    String?        @unique
   passwordResetExpiry   DateTime?
+  emailVerified         DateTime?
+  emailVerifyToken      String?        @unique
+  emailVerifyExpiry     DateTime?
   createdAt             DateTime       @default(now())
+  ssoCodes        SsoCode[]
   subscriptions   Subscription[]
   history         SubscriptionHistory[]
   household       Household?     @relation("HouseholdOwner")
@@ -184,4 +188,25 @@ model BankTranscript {
   candidates   Json?
 
   @@index([userId])
+}
+
+// Single-use, short-lived code for the SSO hand-off (replaces JWT-in-URL).
+model SsoCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// Fixed-window rate limiting (DB-backed; read/written via raw SQL across apps).
+model RateLimit {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  count     Int      @default(0)
+  expiresAt DateTime
 }
